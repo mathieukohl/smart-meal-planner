@@ -91,10 +91,10 @@
       <CalorieChart />
     </div>
     <div>
-      <h2>Meal Suggestions</h2>
+      <h2 class="text-h5">Meal Suggestions</h2>
       <q-btn
         @click="fetchMealSuggestions"
-        label="Get Meal Suggestions"
+        label="Get a Random Meal Suggestions"
         color="secondary"
       />
       <q-spinner v-if="isLoading" color="secondary" size="lg" />
@@ -103,9 +103,9 @@
         <q-item
           v-for="meal in suggestedMeals"
           :key="meal.idMeal"
-          class="q-my-md"
+          class="q-my-md col-4"
         >
-          <div class="meal-info">
+          <div class="meal-info q-mr-md">
             <img :src="meal.strMealThumb" alt="meal image" class="meal-image" />
             <div class="meal-text">
               <div class="meal-title">{{ meal.strMeal }}</div>
@@ -124,7 +124,7 @@
           <!-- Meal Details Section -->
           <div
             v-if="expandedMealId === meal.idMeal && selectedMealDetails"
-            class="q-my-md"
+            class="q-my-md col-10"
           >
             <q-card class="q-pa-md meal-details-card">
               <q-card-section>
