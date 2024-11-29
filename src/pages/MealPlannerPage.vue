@@ -9,6 +9,25 @@
       :options="mealCategories"
       label="Meal Category"
     />
+
+    <div>
+      <q-input v-model="newIngredient" label="Add Ingredient" />
+      <q-btn @click="addIngredient" label="Add Ingredient" color="primary" />
+      <q-list>
+        <q-item v-for="(ingredient, index) in newIngredients" :key="index">
+          <q-item-section>{{ ingredient }}</q-item-section>
+          <q-item-section side>
+            <q-btn
+              @click="removeIngredient(index)"
+              icon="delete"
+              color="negative"
+              flat
+            />
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </div>
+
     <q-btn
       @click="isEditing ? updateMeal() : addNewMeal()"
       :label="isEditing ? 'Update Meal' : 'Add Meal'"
@@ -19,7 +38,6 @@
       v-model="selectedCategory"
       :options="['all', ...mealCategories]"
       label="Filter by Category"
-      @update:model-value="filterMeals"
     />
 
     <q-list>
@@ -27,6 +45,9 @@
         <q-item-section>
           <div>
             {{ meal.name }} - {{ meal.calories }} kcal ({{ meal.category }})
+          </div>
+          <div v-if="meal.ingredients.length > 0">
+            Ingredients: {{ meal.ingredients.join(', ') }}
           </div>
         </q-item-section>
         <q-item-section side>
@@ -40,6 +61,10 @@
         </q-item-section>
       </q-item>
     </q-list>
+
+    <div>
+      <h2>Total Calories: {{ totalCalories }}</h2>
+    </div>
   </q-page>
 </template>
 
@@ -62,13 +87,29 @@ const selectedCategory = ref<
   'all' | 'breakfast' | 'lunch' | 'dinner' | 'snack'
 >('all');
 
+// Ingredient management
+const newIngredients = ref<string[]>([]);
+const newIngredient = ref<string>('');
+
+const addIngredient = () => {
+  if (newIngredient.value.trim() !== '') {
+    newIngredients.value.push(newIngredient.value.trim());
+    newIngredient.value = '';
+  }
+};
+
+const removeIngredient = (index: number) => {
+  newIngredients.value.splice(index, 1);
+};
+
+// Adding and updating meals
 const addNewMeal = () => {
   if (newMealName.value && newMealCalories.value !== null) {
     const newMeal: Meal = {
       id: Date.now(),
       name: newMealName.value,
       calories: newMealCalories.value,
-      ingredients: [],
+      ingredients: [...newIngredients.value],
       category: newMealCategory.value,
     };
     mealStore.addMeal(newMeal);
@@ -82,6 +123,7 @@ const editMeal = (meal: Meal) => {
   newMealName.value = meal.name;
   newMealCalories.value = meal.calories;
   newMealCategory.value = meal.category;
+  newIngredients.value = [...meal.ingredients];
 };
 
 const updateMeal = () => {
@@ -94,7 +136,7 @@ const updateMeal = () => {
       id: currentMealId.value,
       name: newMealName.value,
       calories: newMealCalories.value,
-      ingredients: [],
+      ingredients: [...newIngredients.value],
       category: newMealCategory.value,
     };
     mealStore.updateMeal(updatedMeal);
@@ -110,6 +152,7 @@ const resetForm = () => {
   newMealName.value = '';
   newMealCalories.value = null;
   newMealCategory.value = 'breakfast';
+  newIngredients.value = [];
   isEditing.value = false;
   currentMealId.value = null;
 };
@@ -122,5 +165,10 @@ const filteredMeals = computed(() => {
   return mealStore.meals.filter(
     (meal) => meal.category === selectedCategory.value
   );
+});
+
+// Total calories calculation
+const totalCalories = computed(() => {
+  return filteredMeals.value.reduce((total, meal) => total + meal.calories, 0);
 });
 </script>
