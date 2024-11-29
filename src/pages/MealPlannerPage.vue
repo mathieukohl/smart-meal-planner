@@ -15,8 +15,15 @@
       color="primary"
     />
 
+    <q-select
+      v-model="selectedCategory"
+      :options="['all', ...mealCategories]"
+      label="Filter by Category"
+      @update:model-value="filterMeals"
+    />
+
     <q-list>
-      <q-item v-for="meal in mealStore.meals" :key="meal.id" clickable>
+      <q-item v-for="meal in filteredMeals" :key="meal.id" clickable>
         <q-item-section>
           <div>
             {{ meal.name }} - {{ meal.calories }} kcal ({{ meal.category }})
@@ -37,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useMealStore } from 'src/stores/mealStore';
 import { Meal } from 'src/models/Meal';
 
@@ -51,11 +58,14 @@ const newMealCategory = ref<'breakfast' | 'lunch' | 'dinner' | 'snack'>(
 const mealCategories = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 const isEditing = ref(false);
 const currentMealId = ref<number | null>(null);
+const selectedCategory = ref<
+  'all' | 'breakfast' | 'lunch' | 'dinner' | 'snack'
+>('all');
 
 const addNewMeal = () => {
   if (newMealName.value && newMealCalories.value !== null) {
     const newMeal: Meal = {
-      id: Date.now(), // Use current timestamp as a unique ID
+      id: Date.now(),
       name: newMealName.value,
       calories: newMealCalories.value,
       ingredients: [],
@@ -103,4 +113,14 @@ const resetForm = () => {
   isEditing.value = false;
   currentMealId.value = null;
 };
+
+// Filtering logic
+const filteredMeals = computed(() => {
+  if (selectedCategory.value === 'all') {
+    return mealStore.meals;
+  }
+  return mealStore.meals.filter(
+    (meal) => meal.category === selectedCategory.value
+  );
+});
 </script>
