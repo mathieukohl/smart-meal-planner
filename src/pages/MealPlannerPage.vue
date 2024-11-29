@@ -98,19 +98,61 @@
         color="secondary"
       />
       <q-spinner v-if="isLoading" color="secondary" size="lg" />
+
       <q-list v-if="!isLoading && suggestedMeals.length > 0">
-        <q-item v-for="meal in suggestedMeals" :key="meal.idMeal">
-          <q-item-section>
-            <div>{{ meal.strMeal }}</div>
-          </q-item-section>
-          <q-item-section side>
-            <img
-              :src="meal.strMealThumb"
-              alt="meal image"
-              width="50"
-              height="50"
-            />
-          </q-item-section>
+        <q-item
+          v-for="meal in suggestedMeals"
+          :key="meal.idMeal"
+          class="q-my-md"
+        >
+          <div class="meal-info">
+            <img :src="meal.strMealThumb" alt="meal image" class="meal-image" />
+            <div class="meal-text">
+              <div class="meal-title">{{ meal.strMeal }}</div>
+              <q-btn
+                @click="fetchMealDetails(meal.idMeal)"
+                :label="
+                  expandedMealId === meal.idMeal ? 'Close details' : 'Details'
+                "
+                color="primary"
+                flat
+                class="details-btn"
+              />
+            </div>
+          </div>
+
+          <!-- Meal Details Section -->
+          <div
+            v-if="expandedMealId === meal.idMeal && selectedMealDetails"
+            class="q-my-md"
+          >
+            <q-card class="q-pa-md meal-details-card">
+              <q-card-section>
+                <h3>{{ selectedMealDetails.strMeal }}</h3>
+                <p>
+                  <strong>Category:</strong>
+                  {{ selectedMealDetails.strCategory }}
+                </p>
+                <p>
+                  <strong>Instructions:</strong>
+                  {{ selectedMealDetails.strInstructions }}
+                </p>
+                <p><strong>Ingredients:</strong></p>
+                <ul>
+                  <li v-for="ingredient in mealIngredients" :key="ingredient">
+                    {{ ingredient }}
+                  </li>
+                </ul>
+              </q-card-section>
+              <q-card-actions align="right">
+                <q-btn
+                  @click="addSuggestedMealToList"
+                  label="Add to Meal List"
+                  color="positive"
+                />
+              </q-card-actions>
+            </q-card>
+          </div>
         </q-item>
       </q-list>
     </div>
@@ -122,7 +164,7 @@ import { ref, computed } from 'vue';
 import { useMealStore } from 'src/stores/mealStore';
 import { Meal } from 'src/models/Meal';
 import CalorieChart from 'src/components/CalorieChart.vue';
-import { getMealSuggestions } from 'src/services/mealService';
+import { getMealSuggestions, getMealDetails } from 'src/services/mealService';
 import { useQuasar } from 'quasar';
 const $q = useQuasar();
 
@@ -227,17 +269,84 @@ const filteredMeals = computed(() => {
 // Total calories calculation
 const totalCalories = computed(() => {
   return filteredMeals.value.reduce((total, meal) => {
-    return total + (meal.calories ?? 0);
+    return total + (Number(meal.calories) || 0);
   }, 0);
 });
 
 const suggestedMeals = ref<
   { idMeal: string; strMeal: string; strMealThumb: string }[]
 >([]);
+const selectedMealDetails = ref<any>(null);
+const mealIngredients = ref<string[]>([]);
+const expandedMealId = ref<string | null>(null);
 
 const fetchMealSuggestions = async () => {
   isLoading.value = true;
   suggestedMeals.value = await getMealSuggestions();
   isLoading.value = false;
 };
+
+const fetchMealDetails = async (mealId: string) => {
+  if (expandedMealId.value === mealId) {
+    // Collapse if clicked again
+    expandedMealId.value = null;
+    selectedMealDetails.value = null;
+    mealIngredients.value = [];
+    return;
+  }
+
+  expandedMealId.value = mealId;
+  selectedMealDetails.value = await getMealDetails(mealId);
+
+  if (selectedMealDetails.value) {
+    // Extract ingredients from the meal details
+    mealIngredients.value = [];
+    for (let i = 1; i <= 20; i++) {
+      const ingredient = selectedMealDetails.value[`strIngredient${i}`];
+      const measure = selectedMealDetails.value[`strMeasure${i}`];
+      if (ingredient) {
+        mealIngredients.value.push(`${measure.trim()} ${ingredient.trim()}`);
+      }
+    }
+  }
+};
+
+const addSuggestedMealToList = () => {
+  if (selectedMealDetails.value) {
+    const newMeal: Meal = {
+      id: Date.now(),
+      name: selectedMealDetails.value.strMeal,
+      calories: 200, // Placeholder: Consider an estimation or user input for calories
+      ingredients: [...mealIngredients.value],
+      category: newMealCategory.value, // Allow user to pick a category
+    };
+    mealStore.addMeal(newMeal);
+    $q.notify({ type: 'positive', message: 'Meal added successfully!' });
+    expandedMealId.value = null;
+  }
+};
 </script>
+
+<style scoped>
+.meal-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.meal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meal-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+}
+
+.meal-details-card {
+  margin-top: 16px;
+}
+</style>
