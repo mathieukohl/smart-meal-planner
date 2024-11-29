@@ -160,11 +160,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useMealStore } from 'src/stores/mealStore';
 import { Meal } from 'src/models/Meal';
 import CalorieChart from 'src/components/CalorieChart.vue';
-import { getMealSuggestions, getMealDetails } from 'src/services/mealService';
+import {
+  getMealSuggestions,
+  getMealDetails,
+  getMealCategories,
+} from 'src/services/mealService';
 import { useQuasar } from 'quasar';
 const $q = useQuasar();
 
@@ -176,12 +180,15 @@ const newMealCalories = ref<number | null>(null);
 const newMealCategory = ref<'breakfast' | 'lunch' | 'dinner' | 'snack'>(
   'breakfast'
 );
-const mealCategories = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+const mealCategories = ref<string[]>([]);
 const isEditing = ref(false);
 const currentMealId = ref<number | null>(null);
-const selectedCategory = ref<
-  'all' | 'breakfast' | 'lunch' | 'dinner' | 'snack'
->('all');
+const selectedCategory = ref<string | 'all'>('all');
+
+// Fetch meal categories from TheMealDB on component mount
+const fetchMealCategories = async () => {
+  mealCategories.value = await getMealCategories();
+};
 
 // Ingredient management
 const newIngredients = ref<string[]>([]);
@@ -297,6 +304,7 @@ const fetchMealDetails = async (mealId: string) => {
 
   expandedMealId.value = mealId;
   selectedMealDetails.value = await getMealDetails(mealId);
+  console.log('expandedMealId.value', selectedMealDetails.value);
 
   if (selectedMealDetails.value) {
     // Extract ingredients from the meal details
@@ -313,18 +321,23 @@ const fetchMealDetails = async (mealId: string) => {
 
 const addSuggestedMealToList = () => {
   if (selectedMealDetails.value) {
+    // Use the category from the selected meal details
     const newMeal: Meal = {
       id: Date.now(),
       name: selectedMealDetails.value.strMeal,
       calories: 200, // Placeholder: Consider an estimation or user input for calories
       ingredients: [...mealIngredients.value],
-      category: newMealCategory.value, // Allow user to pick a category
+      category: selectedMealDetails.value.strCategory, // Use the category from meal details
     };
     mealStore.addMeal(newMeal);
     $q.notify({ type: 'positive', message: 'Meal added successfully!' });
-    expandedMealId.value = null;
+    expandedMealId.value = null; // Collapse details after adding
   }
 };
+
+onMounted(() => {
+  fetchMealCategories();
+});
 </script>
 
 <style scoped>

@@ -31,3 +31,16 @@ export const getMealDetails = async (mealId: string) => {
     return null;
   }
 };
+
+// Fetch meal categories from TheMealDB
+export const getMealCategories = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/list.php?c=list`);
+    return response.data.meals.map(
+      (meal: { strCategory: string }) => meal.strCategory
+    );
+  } catch (error) {
+    console.error('Error fetching meal categories:', error);
+    return [];
+  }
+};
