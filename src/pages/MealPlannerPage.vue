@@ -2,8 +2,20 @@
   <q-page padding>
     <h1>Meal Planner</h1>
 
-    <q-input v-model="newMealName" label="Meal Name" />
-    <q-input v-model="newMealCalories" label="Calories" type="number" />
+    <q-input
+      v-model="newMealName"
+      label="Meal Name"
+      :rules="[(val) => !!val || 'Meal name is required']"
+      lazy-rules
+    />
+    <q-input
+      v-model="newMealCalories"
+      label="Calories"
+      type="number"
+      :rules="[(val) => val > 0 || 'Calories must be greater than 0']"
+      lazy-rules
+    />
+
     <q-select
       v-model="newMealCategory"
       :options="mealCategories"
@@ -63,11 +75,35 @@
     </q-list>
 
     <div>
-      <h2>Total Calories: {{ totalCalories }}</h2>
+      <h2 class="text-h5">Total Calories: {{ totalCalories }}</h2>
     </div>
     <div>
-      <h2>Calorie Distribution by Meal Category</h2>
+      <h2 class="text-h5">Calorie Distribution by Meal Category</h2>
       <CalorieChart />
+    </div>
+    <div>
+      <h2>Meal Suggestions</h2>
+      <q-btn
+        @click="fetchMealSuggestions"
+        label="Get Meal Suggestions"
+        color="secondary"
+      />
+      <q-spinner v-if="isLoading" color="secondary" size="lg" />
+      <q-list v-if="!isLoading && suggestedMeals.length > 0">
+        <q-item v-for="meal in suggestedMeals" :key="meal.idMeal">
+          <q-item-section>
+            <div>{{ meal.strMeal }}</div>
+          </q-item-section>
+          <q-item-section side>
+            <img
+              :src="meal.strMealThumb"
+              alt="meal image"
+              width="50"
+              height="50"
+            />
+          </q-item-section>
+        </q-item>
+      </q-list>
     </div>
   </q-page>
 </template>
@@ -77,7 +113,11 @@ import { ref, computed } from 'vue';
 import { useMealStore } from 'src/stores/mealStore';
 import { Meal } from 'src/models/Meal';
 import CalorieChart from 'src/components/CalorieChart.vue';
+import { getMealSuggestions } from 'src/services/mealService';
+import { useQuasar } from 'quasar';
+const $q = useQuasar();
 
+const isLoading = ref(false);
 const mealStore = useMealStore();
 
 const newMealName = ref('');
@@ -119,6 +159,7 @@ const addNewMeal = () => {
     };
     mealStore.addMeal(newMeal);
     resetForm();
+    $q.notify({ type: 'positive', message: 'Meal added successfully!' });
   }
 };
 
@@ -146,11 +187,13 @@ const updateMeal = () => {
     };
     mealStore.updateMeal(updatedMeal);
     resetForm();
+    $q.notify({ type: 'positive', message: 'Meal updated successfully!' });
   }
 };
 
 const removeMeal = (mealId: number) => {
   mealStore.removeMeal(mealId);
+  $q.notify({ type: 'warning', message: 'Meal removed!' });
 };
 
 const resetForm = () => {
@@ -174,6 +217,18 @@ const filteredMeals = computed(() => {
 
 // Total calories calculation
 const totalCalories = computed(() => {
-  return filteredMeals.value.reduce((total, meal) => total + meal.calories, 0);
+  return filteredMeals.value.reduce((total, meal) => {
+    return total + (meal.calories ?? 0);
+  }, 0);
 });
+
+const suggestedMeals = ref<
+  { idMeal: string; strMeal: string; strMealThumb: string }[]
+>([]);
+
+const fetchMealSuggestions = async () => {
+  isLoading.value = true;
+  suggestedMeals.value = await getMealSuggestions();
+  isLoading.value = false;
+};
 </script>
