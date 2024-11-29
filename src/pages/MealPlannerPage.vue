@@ -9,7 +9,11 @@
       :options="mealCategories"
       label="Meal Category"
     />
-    <q-btn @click="addNewMeal" label="Add Meal" color="primary" />
+    <q-btn
+      @click="isEditing ? updateMeal() : addNewMeal()"
+      :label="isEditing ? 'Update Meal' : 'Add Meal'"
+      color="primary"
+    />
 
     <q-list>
       <q-item v-for="meal in mealStore.meals" :key="meal.id" clickable>
@@ -19,6 +23,7 @@
           </div>
         </q-item-section>
         <q-item-section side>
+          <q-btn @click="editMeal(meal)" icon="edit" color="primary" flat />
           <q-btn
             @click="removeMeal(meal.id)"
             icon="delete"
@@ -34,6 +39,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useMealStore } from 'src/stores/mealStore';
+import { Meal } from 'src/models/Meal';
 
 const mealStore = useMealStore();
 
@@ -43,10 +49,12 @@ const newMealCategory = ref<'breakfast' | 'lunch' | 'dinner' | 'snack'>(
   'breakfast'
 );
 const mealCategories = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+const isEditing = ref(false);
+const currentMealId = ref<number | null>(null);
 
 const addNewMeal = () => {
   if (newMealName.value && newMealCalories.value !== null) {
-    const newMeal = {
+    const newMeal: Meal = {
       id: Date.now(), // Use current timestamp as a unique ID
       name: newMealName.value,
       calories: newMealCalories.value,
@@ -54,13 +62,45 @@ const addNewMeal = () => {
       category: newMealCategory.value,
     };
     mealStore.addMeal(newMeal);
-    newMealName.value = '';
-    newMealCalories.value = null;
-    newMealCategory.value = 'breakfast';
+    resetForm();
+  }
+};
+
+const editMeal = (meal: Meal) => {
+  isEditing.value = true;
+  currentMealId.value = meal.id;
+  newMealName.value = meal.name;
+  newMealCalories.value = meal.calories;
+  newMealCategory.value = meal.category;
+};
+
+const updateMeal = () => {
+  if (
+    currentMealId.value !== null &&
+    newMealName.value &&
+    newMealCalories.value !== null
+  ) {
+    const updatedMeal: Meal = {
+      id: currentMealId.value,
+      name: newMealName.value,
+      calories: newMealCalories.value,
+      ingredients: [],
+      category: newMealCategory.value,
+    };
+    mealStore.updateMeal(updatedMeal);
+    resetForm();
   }
 };
 
 const removeMeal = (mealId: number) => {
   mealStore.removeMeal(mealId);
+};
+
+const resetForm = () => {
+  newMealName.value = '';
+  newMealCalories.value = null;
+  newMealCategory.value = 'breakfast';
+  isEditing.value = false;
+  currentMealId.value = null;
 };
 </script>
