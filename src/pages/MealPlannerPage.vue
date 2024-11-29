@@ -1,6 +1,6 @@
 <template>
   <q-page padding>
-    <h1>Meal Planner</h1>
+    <h1 class="text-h5">Meal Planner</h1>
 
     <q-input
       v-model="newMealName"
@@ -24,7 +24,19 @@
 
     <div>
       <q-input v-model="newIngredient" label="Add Ingredient" />
-      <q-btn @click="addIngredient" label="Add Ingredient" color="primary" />
+      <div class="q-mt-md">
+        <q-btn
+          @click="addIngredient"
+          label="Add Ingredient"
+          color="primary"
+          class="q-mr-md"
+        />
+        <q-btn
+          @click="isEditing ? updateMeal() : addNewMeal()"
+          :label="isEditing ? 'Update Meal' : 'Add Meal'"
+          color="primary"
+        />
+      </div>
       <q-list>
         <q-item v-for="(ingredient, index) in newIngredients" :key="index">
           <q-item-section>{{ ingredient }}</q-item-section>
@@ -40,12 +52,9 @@
       </q-list>
     </div>
 
-    <q-btn
-      @click="isEditing ? updateMeal() : addNewMeal()"
-      :label="isEditing ? 'Update Meal' : 'Add Meal'"
-      color="primary"
-    />
-
+    <div>
+      <h2 class="text-h5">Meal list :</h2>
+    </div>
     <q-select
       v-model="selectedCategory"
       :options="['all', ...mealCategories]"
