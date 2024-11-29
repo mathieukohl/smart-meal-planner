@@ -65,6 +65,10 @@
     <div>
       <h2>Total Calories: {{ totalCalories }}</h2>
     </div>
+    <div>
+      <h2>Calorie Distribution by Meal Category</h2>
+      <CalorieChart />
+    </div>
   </q-page>
 </template>
 
@@ -72,6 +76,7 @@
 import { ref, computed } from 'vue';
 import { useMealStore } from 'src/stores/mealStore';
 import { Meal } from 'src/models/Meal';
+import CalorieChart from 'src/components/CalorieChart.vue';
 
 const mealStore = useMealStore();
 
